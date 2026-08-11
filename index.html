@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luxury Pools — 3D Experience</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@900&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #000;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .scroll-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 400vh;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .section {
+      position: absolute;
+      left: 8%;
+      color: white;
+      width: 500px;
+      opacity: 0;
+      transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+      transform: translateY(40px);
+    }
+
+    .section.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    h1 {
+      font-size: 6rem;
+      letter-spacing: -0.3rem;
+      line-height: 0.8;
+      margin-bottom: 20px;
+    }
+
+    p {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-style: italic;
+      opacity: 0.7;
+      max-width: 400px;
+    }
+
+    .cta {
+      pointer-events: all;
+      background: white;
+      color: black;
+      border: none;
+      padding: 20px 40px;
+      font-weight: 900;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: 0.2rem;
+    }
+
+    .cta:hover { transform: scale(1.1); }
+
+    .progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #00fbff, #4060ff);
+      z-index: 20;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    .nav {
+      position: fixed;
+      top: 30px;
+      right: 40px;
+      z-index: 20;
+      color: white;
+      font-size: 0.9rem;
+      letter-spacing: 0.3rem;
+      font-weight: 900;
+    }
+  </style>
+</head>
+<body>
+  <div class="progress-bar" id="progressBar"></div>
+  <div class="nav">LUXURY POOLS</div>
+
+  <div id="container"></div>
+
+  <div class="scroll-overlay" id="scrollOverlay">
+    <div class="section" data-pos="0.1">
+      <h1>ENGINEERING</h1>
+      <p>Precision excavation and structural foundation.</p>
+    </div>
+    <div class="section" data-pos="0.4">
+      <h1>MATERIALS</h1>
+      <p>Premium hardwoods and Italian stonework.</p>
+    </div>
+    <div class="section" data-pos="0.7">
+      <h1>HYDRATION</h1>
+      <p>Advanced filtration and crystal clarity.</p>
+    </div>
+    <div class="section" data-pos="0.95" style="left: 50%; transform: translateX(-50%); width: auto; text-align: center;">
+      <button class="cta">BUILD YOUR DREAM</button>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    // --- SCENE SETUP ---
+    const container = document.getElementById('container');
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    container.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#0a0a0a');
+    scene.fog = new THREE.Fog('#0a0a0a', 20, 50);
+
+    const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(10, 10, 10);
+
+    // --- LIGHTING ---
+    const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+    scene.add(ambient);
+
+    const sun = new THREE.DirectionalLight(0xffffff, 2);
+    sun.position.set(10, 15, 10);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -15;
+    sun.shadow.camera.right = 15;
+    sun.shadow.camera.top = 15;
+    sun.shadow.camera.bottom = -15;
+    scene.add(sun);
+
+    const fillLight = new THREE.PointLight('#00fbff', 1, 20);
+    fillLight.position.set(-5, 5, 5);
+    scene.add(fillLight);
+
+    // Environment for reflections
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    // --- GROUND ---
+    const groundGeo = new THREE.PlaneGeometry(40, 40);
+    const groundMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 1 });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.1;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // --- POOL SHELL ---
+    const shellGeo = new THREE.BoxGeometry(6, 1.5, 4);
+    const shellMat = new THREE.MeshStandardMaterial({ color: '#f5f5f5', metalness: 0.2, roughness: 0.8, transparent: true, opacity: 0 });
+    const shell = new THREE.Mesh(shellGeo, shellMat);
+    shell.position.y = -2;
+    shell.castShadow = true;
+    shell.receiveShadow = true;
+    scene.add(shell);
+
+    // Pool interior walls
+    const innerWallMat = new THREE.MeshStandardMaterial({ color: '#0088ff', roughness: 0.3, metalness: 0.1 });
+    const innerWallsGroup = new THREE.Group();
+    const wallThickness = 0.1;
+    // Bottom
+    const bottom = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.1, 3.8), innerWallMat);
+    bottom.position.y = -0.7;
+    innerWallsGroup.add(bottom);
+    // Sides
+    for (let i = 0; i < 2; i++) {
+      const side = new THREE.Mesh(new THREE.BoxGeometry(5.8, 1.4, 0.1), innerWallMat);
+      side.position.set(0, 0, (i === 0 ? -1.85 : 1.85));
+      innerWallsGroup.add(side);
+    }
+    for (let i = 0; i < 2; i++) {
+      const end = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.4, 3.8), innerWallMat);
+      end.position.set((i === 0 ? -2.85 : 2.85), 0, 0);
+      innerWallsGroup.add(end);
+    }
+    innerWallsGroup.visible = false;
+    scene.add(innerWallsGroup);
+
+    // --- DECK ---
+    const deckGroup = new THREE.Group();
+    const deckMat = new THREE.MeshStandardMaterial({ color: '#5d4037', roughness: 0.9 });
+    const deck1 = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 3), deckMat);
+    deck1.position.set(0, -0.05, 3.5);
+    deck1.castShadow = true;
+    deck1.receiveShadow = true;
+    deckGroup.add(deck1);
+
+    const deck2 = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 12), deckMat);
+    deck2.position.set(4.5, -0.05, 0);
+    deck2.castShadow = true;
+    deck2.receiveShadow = true;
+    deckGroup.add(deck2);
+
+    const deck3 = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 12), deckMat);
+    deck3.position.set(-4.5, -0.05, 0);
+    deck3.castShadow = true;
+    deck3.receiveShadow = true;
+    deckGroup.add(deck3);
+
+    deckGroup.position.z = 5;
+    deckGroup.scale.set(0, 0, 0);
+    scene.add(deckGroup);
+
+    // --- WATER (Reflective) ---
+    const waterGeo = new THREE.PlaneGeometry(5.8, 3.8, 32, 32);
+    const waterMat = new THREE.MeshStandardMaterial({
+      color: '#00fbff',
+      transparent: true,
+      opacity: 0.85,
+      metalness: 0.9,
+      roughness: 0.1,
+      envMapIntensity: 1.5
+    });
+    const water = new THREE.Mesh(waterGeo, waterMat);
+    water.rotation.x = -Math.PI / 2;
+    water.position.y = -0.5;
+    water.scale.y = 0;
+    scene.add(water);
+
+    // --- DECORATIVE PARTICLES (Stars/Dust) ---
+    const particleCount = 1500;
+    const positions = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      positions[i * 3]     = (Math.random() - 0.5) * 30;
+      positions[i * 3 + 1] = Math.random() * 15;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 30;
+    }
+    const particleGeo = new THREE.BufferGeometry();
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const particleMat = new THREE.PointsMaterial({ color: '#ffffff', size: 0.05, transparent: true, opacity: 0.6 });
+    const particles = new THREE.Points(particleGeo, particleMat);
+    scene.add(particles);
+
+    // --- SCROLL LOGIC ---
+    let scrollProgress = 0;
+    let targetScroll = 0;
+    const overlay = document.getElementById('scrollOverlay');
+    const progressBar = document.getElementById('progressBar');
+    const sections = document.querySelectorAll('.section');
+
+    window.addEventListener('scroll', () => {
+      const max = document.body.scrollHeight - window.innerHeight;
+      targetScroll = max > 0 ? window.scrollY / max : 0;
+    });
+
+    // --- SCROLLING HACK (Make body scrollable) ---
+    document.body.style.height = '400vh';
+
+    function smoothstep(a, b, t) {
+      t = Math.max(0, Math.min(1, (t - a) / (b - a)));
+      return t * t * (3 - 2 * t);
+    }
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsed = clock.getElapsedTime();
+
+      // Smooth scroll lerp
+      scrollProgress += (targetScroll - scrollProgress) * 0.08;
+
+      // Stage 1: Shell (0 - 0.3)
+      const stage1 = smoothstep(0, 0.3, scrollProgress);
+      shell.position.y = -2 + (stage1 * 1.5);
+      shellMat.opacity = stage1;
+      innerWallsGroup.visible = stage1 > 0.5;
+      innerWallsGroup.position.y = -2 + (stage1 * 1.5);
+
+      // Stage 2: Deck (0.3 - 0.6)
+      const stage2 = smoothstep(0.3, 0.6, scrollProgress);
+      deckGroup.position.z = 5 - (stage2 * 5);
+      deckGroup.scale.setScalar(stage2);
+
+      // Stage 3: Water (0.6 - 1.0)
+      const stage3 = smoothstep(0.6, 0.9, scrollProgress);
+      water.scale.y = Math.max(0.001, stage3);
+      water.position.y = -0.5 + (stage3 * 0.4);
+      waterMat.opacity = stage3 * 0.85;
+
+      // Camera flythrough
+      camera.position.x = 10 + (scrollProgress * 2);
+      camera.position.y = 8 - (scrollProgress * 3);
+      camera.position.z = 10 - (scrollProgress * 14);
+      camera.lookAt(0, 0, 0);
+
+      // Water animation (subtle ripple)
+      water.position.z = Math.sin(elapsed * 0.8) * 0.05;
+      const pAttr = particles.geometry.attributes.position;
+      for (let i = 1; i < pAttr.count; i++) {
+        pAttr.array[i * 3 + 1] += Math.sin(elapsed + i) * 0.002;
+      }
+      pAttr.needsUpdate = true;
+      particles.rotation.y += 0.0003;
+
+      // Update progress bar
+      progressBar.style.width = (scrollProgress * 100) + '%';
+
+      // Reveal text sections based on scroll
+      sections.forEach((sec) => {
+        const pos = parseFloat(sec.dataset.pos);
+        sec.classList.toggle('visible', scrollProgress > pos - 0.05 && scrollProgress < pos + 0.2);
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
